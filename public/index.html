@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WanderAI - ChatGPT Style AI Trip Planner</title>
+  <meta name="description" content="AI-powered travel planner that generates custom day-by-day itineraries, budget estimates, and insider tips powered by Groq.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Markdown & Icons CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container" id="app">
+    
+    <!-- Collapsible Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h2>WanderAI</h2>
+            <span class="brand-badge">Trip Copilot</span>
+          </div>
+        </div>
+        <button class="icon-btn close-sidebar-btn" id="closeSidebarBtn" title="Close sidebar" aria-label="Close sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="new-chat-btn" id="newChatBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Trip Plan</span>
+          <kbd class="kbd-hint">Ctrl K</kbd>
+        </button>
+      </div>
+
+      <div class="sidebar-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="tripSearchInput" placeholder="Search saved trips..." aria-label="Search saved trips">
+      </div>
+
+      <!-- History List -->
+      <div class="chat-history" id="chatHistoryList">
+        <div class="history-label">Recent Trips</div>
+        <div class="history-items" id="historyItems">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="status-indicator" id="apiKeyStatusIndicator" title="Groq API Status">
+          <span class="status-dot warning" id="statusDot"></span>
+          <span class="status-text" id="statusText">Checking key...</span>
+        </div>
+        <div class="footer-buttons">
+          <button class="footer-btn" id="openSettingsBtn" title="Settings & API Key">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </button>
+          <button class="footer-btn" id="clearAllTripsBtn" title="Clear all chat history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>Clear History</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Workspace -->
+    <main class="main-content">
+      
+      <!-- Top Navigation Bar -->
+      <header class="top-nav">
+        <div class="nav-left">
+          <button class="icon-btn" id="toggleSidebarBtn" title="Toggle sidebar" aria-label="Toggle sidebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="current-trip-title" id="currentTripTitle" title="Current Trip">New Adventure</div>
+        </div>
+
+        <div class="nav-right">
+          <div class="model-badge" id="modelBadge" title="Groq AI Model">
+            <span class="bolt-icon">⚡</span>
+            <span id="activeModelName">gpt-oss-120b</span>
+          </div>
+
+          <div class="dropdown">
+            <button class="nav-action-btn" id="exportBtn" title="Export this itinerary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export</span>
+            </button>
+            <div class="dropdown-menu" id="exportMenu">
+              <button class="dropdown-item" id="exportMarkdownBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                Download Markdown (.md)
+              </button>
+              <button class="dropdown-item" id="exportPrintBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print / Save as PDF
+              </button>
+              <button class="dropdown-item" id="copyAllTextBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                Copy Full Itinerary
+              </button>
+            </div>
+          </div>
+
+          <button class="nav-action-btn icon-only" id="navNewTripBtn" title="Start new trip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Alert Banner (Missing API Key) -->
+      <div class="api-banner hidden" id="apiBanner">
+        <div class="banner-content">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span><strong>Groq API Key Required:</strong> Add your key in the <code>.env</code> file (or configure in Settings).</span>
+        </div>
+        <div class="banner-actions">
+          <button class="btn-sm" id="bannerSettingsBtn">Open Settings</button>
+          <button class="icon-btn-sm" id="dismissBannerBtn" title="Dismiss">✕</button>
+        </div>
+      </div>
+
+      <!-- Messages & Conversation Container -->
+      <div class="chat-container" id="chatContainer">
+        
+        <!-- Welcome Hero (Shown when conversation is empty) -->
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-hero">
+            <div class="hero-badge">
+              <span>✈️ Instant Travel Intelligence</span>
+            </div>
+            <h1>Where will your next adventure take you?</h1>
+            <p>Plan customized day-by-day itineraries, discover hidden local spots, estimate costs, and get tailored packing tips in seconds.</p>
+          </div>
+
+          <!-- Interactive Quick Trip Builder -->
+          <div class="trip-builder-card">
+            <div class="builder-header">
+              <span class="builder-title">⚡ Quick Trip Wizard</span>
+              <span class="builder-sub">Customize details or pick an inspiration card below</span>
+            </div>
+            <div class="builder-grid">
+              <div class="form-group">
+                <label for="wizardDestination">Destination</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">📍</span>
+                  <input type="text" id="wizardDestination" placeholder="e.g. Kyoto, Japan" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="wizardDays">Duration</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">📅</span>
+                  <select id="wizardDays">
+                    <option value="Weekend (2 Days)">Weekend (2 Days)</option>
+                    <option value="3 Days">3 Days</option>
+                    <option value="5 Days" selected>5 Days</option>
+                    <option value="7 Days (1 Week)">7 Days (1 Week)</option>
+                    <option value="10 Days">10 Days</option>
+                    <option value="2 Weeks">2 Weeks</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="wizardBudget">Budget</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">💵</span>
+                  <select id="wizardBudget">
+                    <option value="Backpacker / Budget-Friendly ($)">Backpacker / Budget ($)</option>
+                    <option value="Moderate & Comfortable ($$)" selected>Moderate ($$)</option>
+                    <option value="Luxury / Premium ($$$)">Luxury ($$$)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="wizardStyle">Travel Style</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">🎒</span>
+                  <select id="wizardStyle">
+                    <option value="Solo Explorer" selected>Solo Explorer</option>
+                    <option value="Couple / Romantic">Couple / Romantic</option>
+                    <option value="Family with Kids">Family with Kids</option>
+                    <option value="Foodie & Culinary Focus">Foodie & Culinary</option>
+                    <option value="Adventure & Nature">Adventure & Nature</option>
+                    <option value="Relaxation & Wellness">Relaxation & Chill</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="builder-footer">
+              <button class="btn-primary" id="wizardGenerateBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Generate Itinerary
+              </button>
+            </div>
+          </div>
+
+          <!-- Prompt Inspiration Cards -->
+          <div class="prompt-grid">
+            <button class="prompt-card" data-prompt="Plan a 5-day cultural and foodie itinerary for Tokyo and Kyoto on a moderate budget ($150/day). Include metro advice, must-eat ramen & sushi spots, and morning vs evening attractions.">
+              <div class="card-icon">🌸</div>
+              <div class="card-content">
+                <div class="card-title">5-Day Tokyo & Kyoto Odyssey</div>
+                <div class="card-desc">Shrines, bullet trains, foodie alleys & hidden tea houses</div>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Design a romantic 4-day road trip itinerary through Tuscany and Florence, Italy. Focus on scenic vineyards, historic villages, cooking classes, and sunset viewpoints.">
+              <div class="card-icon">🍷</div>
+              <div class="card-content">
+                <div class="card-title">Romantic 4-Day Tuscany & Florence</div>
+                <div class="card-desc">Rolling hills, wine tasting, cobblestone alleys & sunsets</div>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Create an adventurous 7-day backpacking guide for Iceland's Ring Road or Golden Circle on a budget. Include hot springs, waterfalls, camper van tips, and packing essentials.">
+              <div class="card-icon">🌋</div>
+              <div class="card-content">
+                <div class="card-title">7-Day Iceland Nature Adventure</div>
+                <div class="card-desc">Waterfalls, thermal baths, northern lights & camper tips</div>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Give me a 6-day relaxing and tropical vacation in Bali (Ubud and Seminyak) for a couple. Include lush rice terraces, beach clubs, spa visits, and budget breakdown.">
+              <div class="card-icon">🌴</div>
+              <div class="card-content">
+                <div class="card-title">6-Day Tropical Bali Getaway</div>
+                <div class="card-desc">Rice terraces, surf cafes, sunset temples & beach clubs</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Message List -->
+        <div class="messages-list hidden" id="messagesList">
+          <!-- Populated by JavaScript -->
+        </div>
+
+      </div>
+
+      <!-- Bottom Chat Input Area -->
+      <footer class="input-area">
+        <div class="input-wrapper">
+          <!-- Quick modifiers chips -->
+          <div class="quick-chips" id="quickChips">
+            <button class="chip" data-modifier="Make this budget-friendly with affordable hostels and street food.">💰 Budget-Friendly</button>
+            <button class="chip" data-modifier="Include kid-friendly attractions and easy transportation.">👨‍👩‍👧 Family Friendly</button>
+            <button class="chip" data-modifier="Focus heavily on local food, street markets, and famous culinary spots.">🍜 Foodie Highlights</button>
+            <button class="chip" data-modifier="Add high-energy outdoor activities, hikes, and adventure sports.">🧗 Adventure</button>
+            <button class="chip" data-modifier="Give me a detailed packing checklist for this trip.">🎒 Packing List</button>
+          </div>
+
+          <!-- Chat form -->
+          <form class="chat-form" id="chatForm">
+            <textarea
+              id="messageInput"
+              placeholder="Ask WanderAI to plan a trip, budget breakdown, local food tour, or packing list..."
+              rows="1"
+              autofocus
+            ></textarea>
+            
+            <div class="form-actions">
+              <button type="button" class="stop-btn hidden" id="stopBtn" title="Stop generating">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                </svg>
+                <span>Stop</span>
+              </button>
+
+              <button type="submit" class="send-btn" id="sendBtn" title="Send message (Enter)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </form>
+
+          <div class="input-disclaimer">
+            <span>WanderAI creates itineraries powered by Groq. Verify schedules, entry visas, and reservations before traveling.</span>
+          </div>
+        </div>
+      </footer>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <h3>Settings & Groq API</h3>
+          </div>
+          <button class="icon-btn" id="closeSettingsBtn" title="Close">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="settingsApiKey">Groq API Key</label>
+            <div class="input-with-icon">
+              <span class="input-icon">🔑</span>
+              <input type="password" id="settingsApiKey" placeholder="gsk_..." autocomplete="off">
+            </div>
+            <p class="field-hint">
+              You can set <code>GROQ_API_KEY</code> in the <code>.env</code> file or save it here in your browser. Get a key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="settingsModel">Groq Model</label>
+            <select id="settingsModel">
+              <option value="openai/gpt-oss-120b" selected>OpenAI GPT OSS 120B (Free - Full Itineraries, Recommended)</option>
+              <option value="openai/gpt-oss-20b">OpenAI GPT OSS 20B (Free - Fast & Full)</option>
+              <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (Free - Fast, 1k Token Limit)</option>
+              <option value="qwen/qwen3.6-27b">Qwen 3.6 27B (Free - Fast, 1k Token Limit)</option>
+            </select>
+          </div>
+
+          <div class="info-box">
+            <div class="info-title">💡 How it works</div>
+            <p>Your requests are sent via a local Express server directly to Groq's high-throughput inference engine. Server-Sent Events (SSE) stream the response in real-time.</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" id="cancelSettingsBtn">Cancel</button>
+          <button class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast"></div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
